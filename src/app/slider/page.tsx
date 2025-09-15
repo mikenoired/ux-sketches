@@ -10,7 +10,7 @@ export default function SliderPage() {
   const dragAreaRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const tickMarks = Array.from({ length: window.innerWidth < 768 ? 51 : 101 }, (_, i) => i * (window.innerWidth < 768 ? 2 : 1));
+  const tickMarks = typeof window !== 'undefined' ? Array.from({ length: window.innerWidth < 768 ? 51 : 101 }, (_, i) => i * (window.innerWidth < 768 ? 2 : 1)) : [];
 
   const setValueFromClientX = useCallback((clientX: number) => {
     if (!sliderRef.current) return;
@@ -115,7 +115,7 @@ export default function SliderPage() {
             onClick={handleSliderClick}
           >
             <div className="w-full relative">
-              {tickMarks.map((tick) => {
+              {tickMarks.map((tick: number) => {
                 const distance = Math.abs(tick - value);
                 const heightMultiplier = Math.max(0.3, 1 - distance / 20);
 
