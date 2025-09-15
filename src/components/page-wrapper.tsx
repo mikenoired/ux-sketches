@@ -13,7 +13,7 @@ interface PageWrapperProps {
 export default function PageWrapper({ children, title, backLink, workNumber }: PageWrapperProps) {
   return (
     <>
-      <div className="p-5 w-dvw h-dvh fixed">
+      <div className="p-5 w-dvw h-dvh fixed z-10">
         <div className="flex justify-between items-center">
           <div className="flex gap-2 items-center">
             <Link href={backLink}>

@@ -83,7 +83,6 @@ export default function SliderPage() {
       <div
         className="min-h-screen bg-[var(--background)] flex flex-col items-center justify-center px-8"
       >
-
         <div
           className="w-full relative max-w-6xl"
         >
@@ -157,7 +156,7 @@ export default function SliderPage() {
 
             <div
               ref={dragAreaRef}
-              className="absolute inset-0 cursor-grab active:cursor-grabbing"
+              className="absolute inset-0 cursor-grab active:cursor-grabbing z-20"
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
