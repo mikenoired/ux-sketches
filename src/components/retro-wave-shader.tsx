@@ -1,6 +1,6 @@
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
-import * as THREE from 'three';
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { useMemo, useRef } from "react";
+import * as THREE from "three";
 
 const vertexShader = `
 precision mediump float;
@@ -31,8 +31,8 @@ vec2 barrelDistort(vec2 uv, float amount) {
   return 0.7 + cc * k;
 }
 
-vec2 pixelate(vec2 uv, float pixelSize){
-  if(pixelSize <= 1.0) return uv;
+vec2 pixelate(vec2 uv, float pixelSize) {
+  if (pixelSize <= 1.0) return uv;
   vec2 px = uResolution.xy / pixelSize;
   return floor(uv * px) / px;
 }
@@ -127,7 +127,7 @@ float lineShape(float v, float thickness){
 void main(){
   vec2 uv = vUv;
   vec2 originalUv = uv;
-  uv = barrelDistort(uv, uDistortion * 0.25);
+  uv = barrelDistort(uv, uDistortion * 0.1);
 
   float perspGrid = perspectiveGrid(uv, uTime);
   
@@ -137,8 +137,6 @@ void main(){
   float thin1 = lineShape(thinWaves(uv, uTime, 0.1), 0.008) * 0.2;
   float thin2 = lineShape(thinWaves(uv, uTime, -0.15), 0.006) * 0.15;
   float thin3 = lineShape(thinWaves(uv, uTime, 0.25), 0.010) * 0.18;
-
-  float scanlines = sin(uv.y * 120.0 + uTime * 5.0) * 0.02;
 
   vec2 noiseUv = uv * 100.0 + uTime * 5.0;
   float noise = fract(sin(dot(noiseUv, vec2(12.9898,78.233))) * 43758.5453);
@@ -157,9 +155,6 @@ void main(){
   vec3 orange = vec3(1.0, 0.5, 0.0);
   vec3 blue = vec3(0.1, 0.3, 1.0);
 
-  float horizonGradient = smoothstep(0.2, 0.8, uv.y);
-  vec3 bgGradient = mix(vec3(0.01, 0.02, 0.03), vec3(0.0, 0.01, 0.02), horizonGradient);
-
   vec3 gridColor = cyan * perspGlow * 1.2;
   
   vec3 thinCol1 = magenta * thin1 * 0.6;
@@ -168,45 +163,34 @@ void main(){
 
   vec3 grainCol = grain * cyan * 0.8;
   
-  vec3 scanlinesCol = scanlines * blue * 0.5;
-  
-  vec3 color = bgGradient + gridColor + thinCol1 + thinCol2 + thinCol3;
+  vec3 color = gridColor + thinCol1 + thinCol2 + thinCol3;
 
-  float ca = uChromatic * 0.01;
-  vec2 caShiftR = vec2(ca, 0.0);
-  vec2 caShiftB = vec2(-ca, 0.0);
+  float ca = uChromatic;
+  vec2 caShiftR = vec2(ca, 0.0); 
+  vec2 caShiftG = vec2(ca+0.01, 0.0);
+  vec2 caShiftB = vec2(ca+0.011, 0.0);
 
   float perspGridR = perspectiveGrid(uv + caShiftR, uTime);
+  float perspGridG = perspectiveGrid(uv + caShiftG, uTime);
   float perspGridB = perspectiveGrid(uv + caShiftB, uTime);
 
   vec3 chroma = vec3(
     cyan.r * perspGridR + color.r,
-    color.g,
+    cyan.g * perspGridG + color.g,
     purple.b * perspGridB + color.b
   );
 
   vec2 pUv = pixelate(uv, uPixelSize);
   float perspGridP = perspectiveGrid(pUv, uTime);
-  vec3 pixelColor = cyan * perspGridP + bgGradient;
+  vec3 pixelColor = cyan * perspGridP;
   
   vec3 finalCol = mix(color, mix(chroma, pixelColor, 0.3), clamp(uPixelSize / 20.0, 0.0, 0.8));
-
-  float dist = distance(originalUv, vec2(0.5));
-  float vignette = smoothstep(1.4, 0.2, dist);
-  vignette = max(vignette, 0.4);
-  float pulse = sin(uTime * 1.5) * 0.05 + 0.95;
-  finalCol *= vignette * pulse;
 
   float atmosphere = smoothstep(1.0, 0.4, uv.y);
   atmosphere = max(atmosphere, 0.4);
   finalCol *= atmosphere;
 
   finalCol += grainCol;
-  finalCol += scanlinesCol;
-  
-  vec2 filmNoiseUv = originalUv * 150.0 + uTime * 8.0;
-  float filmGrain = fract(sin(dot(filmNoiseUv, vec2(41.9898,71.233))) * 18758.5453) * 0.08;
-  finalCol += filmGrain * cyan * 0.4;
 
   gl_FragColor = vec4(finalCol, 1.0);
 }
@@ -216,13 +200,16 @@ function ShaderPlane({ pixelSize = 8, distortion = 0.6, chromatic = 0.6 }) {
   const meshRef = useRef(null);
   const { size } = useThree();
 
-  const uniforms = useMemo(() => ({
-    uTime: { value: 0 },
-    uResolution: { value: new THREE.Vector2(size.width, size.height) },
-    uPixelSize: { value: pixelSize },
-    uDistortion: { value: distortion },
-    uChromatic: { value: chromatic }
-  }), [pixelSize, distortion, chromatic, size]);
+  const uniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uResolution: { value: new THREE.Vector2(size.width, size.height) },
+      uPixelSize: { value: pixelSize },
+      uDistortion: { value: distortion },
+      uChromatic: { value: chromatic },
+    }),
+    [pixelSize, distortion, chromatic, size],
+  );
 
   useFrame(({ clock, size }) => {
     if (!meshRef.current) return;
@@ -242,14 +229,25 @@ function ShaderPlane({ pixelSize = 8, distortion = 0.6, chromatic = 0.6 }) {
   );
 }
 
-export default function RetroWaveShader(props: { pixelSize?: number, distortion?: number, chromatic?: number }) {
+export default function RetroWaveShader(props: {
+  pixelSize?: number;
+  distortion?: number;
+  chromatic?: number;
+}) {
   return (
-    <div style={{ width: '100%', height: '100vh', background: '#000', position: 'relative' }}>
+    <div
+      style={{
+        width: "100%",
+        height: "100vh",
+        background: "#000",
+        position: "relative",
+      }}
+    >
       <Canvas orthographic camera={{ zoom: 1, position: [0, 0, 1] }}>
         <ShaderPlane
-          pixelSize={props.pixelSize ?? 12}
-          distortion={props.distortion ?? 0.3}
-          chromatic={props.chromatic ?? 0.6}
+          pixelSize={props.pixelSize ?? 10}
+          distortion={props.distortion ?? 0.1}
+          chromatic={props.chromatic ?? 0.01}
         />
       </Canvas>
     </div>
